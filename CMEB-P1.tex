@@ -53,11 +53,48 @@
             J(x) = -\mu(x) u'(x)  & x \in (a, b) \\
             u(a) = u(b) = 0
         \end{cases}
+        \label{PrimalWeakFormulation}
     \end{equation}
     by testing against the basis functions $\psi_{i}(x)$ for $i=1,...,N+1$ and using in place of $u(x)$ and $J(x)$ the corresponding discrete approximations $u_{h}(x)$ and $J_{h}(x)$. By substituting the FEM representations of these two functions, derive an expression for the degrees of freedom of $J_{h}(x)$.
 
-    \item \textbf{Mixed formulation.} We derive and solve for $(u(x),J(x))$ the weak formulation of a slight modification of (3) which intrinsically ensures the mass conservation as $J(x)$ is computed in such a way to satisfy the conservation equation[cite: 63, 64, 70]. Derive the weak formulation of (3) by looking for the solution $(u(x),J(x))\in V\times Q$ with $Q=L^{2}(a,b)$ and testing the conservation equation with functions $v(x)\in V$ and the constitutive law with functions $q(x)\in Q$[cite: 71, 72]. Discretize the weak formulation by looking for $(u_{h}(x),J_{h}(x))\in V_{h}\times Q_{h}$ and testing the weak formulation against functions $(v_{h}(x), q_{h}(x))\in V_{h}\times Q_{h}$. Assemble analitically the linear system arising from the FEM discretization[cite: 74]. Compute analitically the degrees of freedom $\{J_{i}\}_{i=1}^{N+1}$ and compare them with those obtained in point a, using the definition $\overline{\overline{\mu}}|_{i}:=(\overline{\mu^{-1}}|_{i})^{-1}$ of the harmonic average of $\mu(x)$ over $[x_{i-1},x_{i}]$[cite: 77].
+    \item \textbf{Mixed formulation.} We derive and solve for $(u(x),J(x))$ the weak formulation of a slight modification of \eqref{PrimalWeakFormulation}:
+    \begin{equation} \label{eq:mixed_strong}
+        \begin{cases}
+            J'(x) + \sigma u(x) = f(x) & x \in (a, b) \\
+            \frac{J(x)}{\mu(x)} + u'(x) = 0 & x \in (a, b) \\
+            u(a) = u(b) = 0
+        \end{cases}
+    \end{equation}
+    which intrinsically ensures the mass conservation as $J(x)$ is computed in such a way to satisfy the conservation equation. 
+    
+    Derive the weak formulation of \eqref{PrimalWeakFormulation} by looking for the solution $(u(x),J(x))\in V\times Q$ with $Q=L^{2}(a,b)$ and testing the conservation equation with functions $v(x)\in V$ and the constitutive law with functions $q(x)\in Q$.
+    
+    Discretize the weak formulation by looking for $(u_{h}(x),J_{h}(x))\in V_{h}\times Q_{h}$ and testing the weak formulation against functions $(v_{h}(x), q_{h}(x))\in V_{h}\times Q_{h}$. Assemble analytically the linear system arising from the FEM discretization.
 
+    \begin{equation} \label{eq:mixed_system}
+        \begin{bmatrix}
+            A_{00} & A_{01} \\
+            A_{10} & A_{11}
+        \end{bmatrix}
+        \begin{bmatrix}
+            u \\
+            J
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+            f_0 \\
+            f_1
+        \end{bmatrix}
+    \end{equation}
+    
+    where $A_{00} \in \mathbb{R}^{N \times N}$, $A_{01} \in \mathbb{R}^{N \times (N+1)}$, and $f_0 \in \mathbb{R}^N$ are derived from the conservation equation, while $A_{10} \in \mathbb{R}^{(N+1) \times N}$, $A_{11} \in \mathbb{R}^{(N+1) \times (N+1)}$, and $f_1 \in \mathbb{R}^{N+1}$ are derived from the constitutive law.
+    
+    Compute analitically the degrees of freedom $\{J_{i}\}_{i=1}^{N+1}$ and compare them with those obtained in point a, using the definition $\overline{\overline{\mu}}|_{i}:=(\overline{\mu^{-1}}|_{i})^{-1}$ of the harmonic average of $\mu(x)$ over $[x_{i-1},x_{i}]$. Recall that for $g \in L^1(x_{i-1}, x_i)$ the integral average of a function is defined as:
+    \begin{equation} 
+        \overline{g}|_i = \frac{1}{h} \int_{x_{i-1}}^{x_i} g(x) \, dx
+        \label{AvgFunction}
+    \end{equation}
+ 
     \item \textbf{Implementation.} Implement a Matlab function to solve the diffusion-reaction problem in mixed formulation (5) with signature: \texttt{function [x, u, J] = gfem\_mixed\_dir\_hom(a, b, N, f, mu, sigma)}, where (a, b) is the domain, $N+1$ is the number of mesh elements, f and mu are the variable right hand side and diffusion coefficient and sigma is the constant reaction coefficient, x are the mesh nodes, u is the FEM density and J the FEM flux density[cite: 80, 81, 82].
 
     \item \textbf{Comparison between primal and primal mixed formulations.} Let $a=0$, $b=1$, $\sigma=5$, $\mu(x)=1.5+\sin(30\pi x)$ and $u(x)=x^{5/2}(1-x)$[cite: 83]. The right hand side $f(x)$ can be computed as $f(x)=-\mu^{\prime}(x)u^{\prime}(x)-\mu(x)u^{\prime\prime}(x)+\sigma u(x)$[cite: 84]. Solve numerically the diffusion-reaction problem in mixed formulation (5) with $N+1=30$ mesh elements and compare the FEM density and flux density with those obtained by solving numerically (4)[cite: 85]. Comment on the $H^{1}(a,b)$ error on the true density $u(x)$ and on the $L^{2}(a,b)$ error on the true flux density $J(x)$[cite: 86].
@@ -67,7 +104,7 @@
 
 \newpage
 
-\section{Point a)}
+\section{Point a) development}
 Let us define the primal formulation of the problem:
 \begin{equation}
     \begin{cases}
@@ -81,19 +118,114 @@ The flux $J(x)$ can be defined by using the constitutive law:
 \begin{equation}
     J(x) = - \mu(x) u'(x)
 \end{equation}
+The discretization of the flux can be written as:
+
+\begin{equation}
+    J_h(x)=\sum_{k=1}^{N+1} J_k \psi_k(x)
+    \label{eq:J_hDef}
+\end{equation}
 
 To find the discrete flux density $J_h(x) \in Q_h(a,b)$, I expand the equation using the weak formulation and testing it using the basis functions defined in \eqref{BasisFunctionPrimal}. \\
 \begin{equation}
-    \int_{a}^{b} J(x) \psi(x) \, dx = -\int_{a}^{b} \mu(x)u'(x) \psi(x) \, dx
+    \int_{a}^{b} J_h(x) \psi(x) \, dx = -\int_{a}^{b} \mu(x)u_h'(x) \psi(x) \, dx
+    \label{WeakFormA}
 \end{equation}
-First of all, let us compute the right hand side of the equation:
+First of all, let us compute the left hand side (LHS) of the equation:
 \begin{equation}
-    \int_{a}^{b} J(x) \psi(x) \, dx = \int_{x_{i-1}}^{x_i} J(x) \cdot 1 \, dx = \int_{x_{i-1}}^{x_i} J(x) \, dx
+    \int_{a}^{b} J_h(x) \psi(x) \, dx = \int_{x_{i-1}}^{x_i} J_h(x) \, dx =\int_{x_{i-1}}^{x_i} \sum_{k=1}^{N+1} J_k \psi_k(x) \, dx = \sum_{k=1}^{N+1} J_k \int_{x_{i-1}}^{x_i} \psi_k(x) \, dx
 \end{equation}
-while the left hand side:
+But
 \begin{equation}
-    -\int_{a}^{b} \mu(x)u'(x) \psi(x) \, dx = -\int_{x_{i-1}}^{x_i} \mu(x)u'(x) \, dx
+    \begin{cases}
+         \int_{x_{i-1}}^{x_i} \psi_k(x) = h &\text{  for } k=i \\
+         \int_{x_{i-1}}^{x_i} \psi_k(x) = 0 &\text{  for } k \neq i
+    \end{cases}
 \end{equation}
+thus the LHS can be written as:
+\begin{equation}
+    \int_{a}^{b} J_h(x) \psi(x) \, dx = J_i \cdot h 
+\end{equation}\newline
+
+$u_h$ is defined as:
+\begin{equation}
+    u_h = \sum_{k=1}^{N} u_k \phi_k(x)
+    \label{eq:u_hDef}
+\end{equation}
+where $\phi_k(x) \in X_h^1(a,b)$ is the globally continuous, piecewise linear basis function (often referred to as the "hat function").
+
+The right hand side can be written as:
+\begin{align}
+    & -\int_{a}^{b} \mu(x)u_h'(x) \psi(x) \, dx = -\int_{x_{i-1}}^{x_i} \mu(x)u_h'(x) \, dx =  -\int_{x_{i-1}}^{x_i} \mu(x) \left(\sum_{k=1}^{N} u_k \phi_k(x)\right)' \, dx = \\
+    &  - \int_{x_{i-1}}^{x_i} \mu(x) \sum_{k=1}^{N} u_k \phi'_k(x) \, dx
+\end{align}
+ But 
+\begin{equation}
+\phi'_k(x) =
+    \begin{cases}
+           -\frac{1}{h} &\text{  for } k=i-1 \\
+          
+           \frac{1}{h} &\text{  for } k = i  \\
+          
+           0 &\text{ otherwise }  \\
+    \end{cases}
+\end{equation}
+ Thus the RHS can be written as: 
+ \begin{align}
+    -\int_{x_{i-1}}^{x_i} \mu(x) \left(- u_{i-1} \frac{1}{h} + u_i \frac{1}{h} \right) \, dx = -\int_{x_{i-1}}^{x_i} \mu(x) \left(\frac{u_i - u_{i-1}}{h}  \right) \, dx= -\left(\frac{u_i - u_{i-1}}{h}  \right) \int_{x_{i-1}}^{x_i} \mu(x) \, dx
+ \end{align}
+
+Overall \eqref{WeakFormA}:
+\begin{align}
+    J_i \cdot h &= - \left(\frac{u_i - u_{i-1}}{h}  \right) \int_{x_{i-1}}^{x_i} \mu(x) \, dx \\
+    J_i & = - \left(\frac{u_i - u_{i-1}}{h^2}  \right) \int_{x_{i-1}}^{x_i} \mu(x) \, dx
+\end{align}
+which is the expression of the degrees of freedom of $J_h$. I may go further by using \eqref{AvgFunction}:
+\begin{equation}
+    J_i  = - \left(\frac{u_i - u_{i-1}}{h}  \right)  \overline{\mu}|_i \, dx
+\end{equation}
+
+\section{Point b) development}
+Starting from the conservation equation of \eqref{eq:mixed_strong}
+\begin{equation}
+    J'(x)+\sigma u(x) = f(x) 
+    \label{ConstituiveEquation}
+\end{equation}
+let us formulate the weak formulation of the problem, using the test function $v \in V = H_0^1(a,b)$:
+\begin{align*} 
+    \int_a^b (J'(x) + \sigma u(x)) v(x) \, dx = \int_a^b f(x) v(x) \, dx \\
+    \int_a^b J'(x) v(x) \, dx + \int_a^b \sigma u(x) v(x) \, dx = \int_a^b f(x) v(x) \,  dx
+\end{align*}
+The first term at RHS can be extended with the integration by parts:
+\begin{align*}
+    \int_a^b J'(x) v(x) \, dx= [J(x)v(x)]_a^b - \int_a^b J(x) v'(x) \, dx \\
+    \int_a^b J'(x) v(x)\, dx = [J(b)v(b) - J(a) v(a)] - \int_a^b J(x) v'(x) \, dx
+\end{align*}
+but $v(a)=v(b)=0$ so,
+\begin{equation}
+    \int_a^b J'(x) v(x) \, dx= - \int_a^b J(x) v'(x) \, dx
+\end{equation}
+At the very end, the conservation equation \eqref{ConstituiveEquation}:
+\begin{equation}
+    - \int_a^b J(x) v'(x) \, dx  + \int_a^b \sigma u(x) v(x) \, dx = \int_a^b f(x) v(x) \,  dx
+    \label{eq:WFConservationLaw}
+\end{equation}
+Let us now analyze the constitutive law of \eqref{eq:mixed_strong}:
+\begin{equation}
+    \frac{J(x)}{\mu(x)} + u'(x) = 0 
+\end{equation}
+and formulate the weak formulation with a test function $q \in Q$
+\begin{equation}
+    \int_a^b \frac{J_(x)}{\mu(x)} q(x) + \int_a^b u'(x) q(x) = 0 
+    \label{eq:WFConstitutiveLaw}
+\end{equation}
+
+Now I can apply the F.E.M. at \eqref{eq:WFConservationLaw} and at \eqref{eq:WFConstitutiveLaw} by using $J_h$ as defined in \eqref{eq:J_hDef} and $u_h$ as defined as \eqref{eq:u_hDef}. Also the test function have to be substituted with respective basis ones ($v_h \rightarrow \phi$  and $q_h \rightarrow \psi(x)$. 
+Let us start from \eqref{eq:WFConservationLaw}:
+\begin{equation}
+    - \int_a^b \sum_{k=1}^{N+1} J_k \psi_k(x) \phi_i'(x) \, dx  + \int_a^b \sigma \sum_{k=1}^{N} u_k \phi_k(x) \phi(x)_i \, dx = \int_a^b f(x) \phi_i(x) \,  dx
+\end{equation}
+for $i=1,...,N$
+    
 
 \end{document}
 
