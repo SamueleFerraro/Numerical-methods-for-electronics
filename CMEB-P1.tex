@@ -95,7 +95,11 @@
         \label{AvgFunction}
     \end{equation}
  
-    \item \textbf{Implementation.} Implement a Matlab function to solve the diffusion-reaction problem in mixed formulation (5) with signature: \texttt{function [x, u, J] = gfem\_mixed\_dir\_hom(a, b, N, f, mu, sigma)}, where (a, b) is the domain, $N+1$ is the number of mesh elements, f and mu are the variable right hand side and diffusion coefficient and sigma is the constant reaction coefficient, x are the mesh nodes, u is the FEM density and J the FEM flux density[cite: 80, 81, 82].
+    \item \textbf{Implementation.} Implement a Matlab function to solve the diffusion-reaction problem in mixed formulation \eqref{eq:mixed_strong} with signature: \newline
+    \begin{center}
+        \texttt{function [x, u, J] = gfem\_mixed\_dir\_hom(a, b, N, f, mu, sigma)}, \newline     
+    \end{center}
+    where \texttt{(a,b)} is the domain, \texttt{N+1} is the number of mesh elements, \texttt{f} and \texttt{mu} are the variable right hand side and diffusion coefficient and \texttt{sigma} is the constant reaction coefficient, \texttt{x} are the mesh nodes, \texttt{u} is the FEM density and \texttt{J} the FEM flux density.
 
     \item \textbf{Comparison between primal and primal mixed formulations.} Let $a=0$, $b=1$, $\sigma=5$, $\mu(x)=1.5+\sin(30\pi x)$ and $u(x)=x^{5/2}(1-x)$[cite: 83]. The right hand side $f(x)$ can be computed as $f(x)=-\mu^{\prime}(x)u^{\prime}(x)-\mu(x)u^{\prime\prime}(x)+\sigma u(x)$[cite: 84]. Solve numerically the diffusion-reaction problem in mixed formulation (5) with $N+1=30$ mesh elements and compare the FEM density and flux density with those obtained by solving numerically (4)[cite: 85]. Comment on the $H^{1}(a,b)$ error on the true density $u(x)$ and on the $L^{2}(a,b)$ error on the true flux density $J(x)$[cite: 86].
 
@@ -219,13 +223,242 @@ and formulate the weak formulation with a test function $q \in Q$
     \label{eq:WFConstitutiveLaw}
 \end{equation}
 
-Now I can apply the F.E.M. at \eqref{eq:WFConservationLaw} and at \eqref{eq:WFConstitutiveLaw} by using $J_h$ as defined in \eqref{eq:J_hDef} and $u_h$ as defined as \eqref{eq:u_hDef}. Also the test function have to be substituted with respective basis ones ($v_h \rightarrow \phi$  and $q_h \rightarrow \psi(x)$. 
+Now I can apply the F.E.M. at \eqref{eq:WFConservationLaw} and at \eqref{eq:WFConstitutiveLaw} by using $J_h$ as defined in \eqref{eq:J_hDef} and $u_h$ as defined as \eqref{eq:u_hDef}. Also the test function have to be substituted with respective basis ones ($v_h \rightarrow \phi(x)$  and $q_h \rightarrow \psi(x)$. 
 Let us start from \eqref{eq:WFConservationLaw}:
 \begin{equation}
-    - \int_a^b \sum_{k=1}^{N+1} J_k \psi_k(x) \phi_i'(x) \, dx  + \int_a^b \sigma \sum_{k=1}^{N} u_k \phi_k(x) \phi(x)_i \, dx = \int_a^b f(x) \phi_i(x) \,  dx
+    - \int_a^b \sum_{k=1}^{N+1} J_k \psi_k(x) \phi_i'(x) \, dx  + \int_a^b \sigma \sum_{k=1}^{N} u_k \phi_k(x) \phi_i(x) \, dx = \int_a^b f(x) \phi_i(x) \,  dx
 \end{equation}
-for $i=1,...,N$
+for $i=1,...,N$.
+
+Working on the first term of the LHS: 
+\begin{align*}
+    - \sum_{k=1}^{N+1} \int_a^b J_k \psi_k(x) \phi_i'(x) \, dx
+\end{align*}
+
+I can derive the terms of $A_{01}$ of the matrix \eqref{eq:mixed_system} as:
+
+\begin{equation}
+    A_{01, ik} = - \int_a^b \psi_k(x) \phi_i'(x) \, dx
+\end{equation}
+
+Since the test function $\phi_i(x)$ has non-zero derivative only on the interval $[x_{i-1}, x_{i+1}]$, the integral can be split as:
+\begin{equation}
+    A_{01, ik} = - \int_{x_{i-1}}^{x_{i}} \psi_k(x) \phi_i'(x) \, dx - \int_{x_{i}}^{x_{i+1}} \psi_k(x) \phi_i'(x) \, dx 
+\end{equation}
+
+Because the trial function $\psi_k(x)$ is $1$ exclusively on $[x_{k-1}, x_k]$ and $0$ elsewhere, for a given row $i$ the only non-zero results occur when $k=i$ and $k=i+1$:
+\begin{equation}
+    A_{01, ik} = 
+    \begin{cases}
+         - \left( 1 \cdot \frac{1}{h} \cdot h \right) = -1 & \text{for } k = i \\[1ex]
+         - \left( 1 \cdot \left(-\frac{1}{h}\right) \cdot h \right) = +1 & \text{for } k = i + 1 \\[1ex]
+         0 & \text{otherwise}
+    \end{cases}
+\end{equation}
+
+This leads to the assembly of the global matrix $A_{01} \in \mathbb{R}^{N \times (N+1)}$. It is a bi-diagonal rectangular matrix that takes the following sparse form:
+\begin{equation} \label{eq:matrix_A01}
+    A_{01} = 
+    \begin{bmatrix}
+        -1 &  1 &  0 & \dots &  0 &  0 \\
+         0 & -1 &  1 & \dots &  0 &  0 \\
+    \vdots & \vdots & \ddots & \ddots & \vdots & \vdots \\
+         0 &  0 & \dots & -1 &  1 &  0 \\
+         0 &  0 & \dots &  0 & -1 &  1
+    \end{bmatrix}
+\end{equation}
+
+Working on the second term of the LHS:
+\begin{equation}
+    \int_a^b \sigma \sum_{k=1}^{N} u_k \phi_k(x) \phi_i(x) \, dx
+\end{equation}
+
+I can derive the terms of $A_{00}$ of the matrix \eqref{eq:mixed_system}:
+\begin{equation}
+    A_{00,ik} = \int_a^b \sigma \phi_k(x) \phi_i(x) \, dx
+\end{equation}
+Since the basis function $\phi_i(x)$ has a non-zero value between $x_{i-1}$ and $x_{i+1}$:
+ \begin{equation}
+     A_{00,ik} = \int_{x_{i-1}}^{x_{i+1}} \sigma \phi_k(x) \phi_i(x) \, dx = \sigma \int_{x_{i-1}}^{x_{i}}\phi_k(x) \phi_i(x) \, dx + \sigma \int_{x_{i}}^{x_{i+1 }}\phi_k(x) \phi_i(x) \, dx 
+ \end{equation}
+ Overall, using the Archimedes's theorem for the calculation of the area of parabolas:
+ \begin{equation}
+     A_{00,ik} =
+     \begin{cases}
+         \sigma \int_{x_{i-1}}^{x_{i}}\phi_k(x) \phi_i(x) \, dx = \sigma \cdot h\cdot \frac{1}{4} \cdot \frac{2}{3} = \frac{\sigma h}{6}&\text{  for } k = i-1 \\
+         \int_{x_{i-1}}^{x_{i+1}} \sigma \phi_k(x) \phi_i(x) \, dx = \frac{\sigma h 2}{3}&\text{  for } k = i-1 \\
+         \sigma \int_{x_{i}}^{x_{i+1 }}\phi_k(x) \phi_i(x) \, dx = \sigma \cdot h\cdot \frac{1}{4} \cdot \frac{2}{3} = \frac{\sigma h}{6} &\text{  for } k = i+1 \\
+         0 &\text{  otherwise}
+     \end{cases}
+ \end{equation}
+
+ This leads to the assembly of the global matrix $A_{00} \in \mathbb{R}^{N \times N}$: 
+\begin{equation} \label{eq:matrix_A00}
+    A_{00} = \frac{\sigma h}{6}
+    \begin{bmatrix}
+        4 & 1 & 0 & \dots & 0 \\
+        1 & 4 & 1 & \dots & 0 \\
+        0 & 1 & 4 & \ddots & \vdots \\
+        \vdots & \ddots & \ddots & \ddots & 1 \\
+        0 & \dots & 0 & 1 & 4
+    \end{bmatrix}
+\end{equation}
+
+The RHS of \eqref{eq:WFConservationLaw}, which will lead to $f_0$, may be written as:
+\begin{equation}
+    f_{0,i} = \int_a^b f(x) \phi_i(x) \,  dx
+\end{equation}
+for $i=1,...,N$.
+
+Since the basis function $\phi_i(x)$ has a non-zero value between $x_{i-1}$ and $x_{i+1}$:
+\begin{equation}
+    \int_{x_{i-1}}^{x_{i+1}} f(x) \phi_i(x) \,  dx = \int_{x_{i-1}}^{x_{i}} f(x) \phi_i(x) \,  dx + \int_{x_{i}}^{x_{i+1}} f(x) \phi_i(x) \,  dx 
+\end{equation}
+
+I may use the \textit{Numerical Quadrature Formula} to compute the integrals:
+\begin{align*}
+    f_{0,i} & =  f\left( \frac{x_{i-1} + x_i }{2} \right) \int_{x_{i-1}}^{x_{i}} \phi_i(x) \,  dx  +  f\left( \frac{x_{i} + x_{i+1} }{2} \right) \int_{x_{i}}^{x_{i+1}} \phi_i(x) \,  dx = \\
+     & = f\left( \frac{x_{i-1} + x_i }{2} \right) \frac{h}{2}  +  f\left( \frac{x_{i} + x_{i+1} }{2} \right) \frac{h}{2} = \frac{h}{2} \left[f\left( \frac{x_{i-1} + x_i }{2} \right) + f\left( \frac{x_{i} + x_{i+1} }{2} \right) \right]
+\end{align*}
+
+Let us move on the constitutive equation of \eqref{eq:mixed_strong} 
+\begin{equation}
+    \frac{J(x)}{\mu(x)} + u'(x) = 0
+    \label{eq:Constitutive}
+\end{equation}
+and apply the same F.E.M. at its weak formulation \eqref{eq:WFConstitutiveLaw} for $i=1,...,N+1$: 
+\begin{align*}
+    &\int_a^b \frac{J_h(x)}{\mu(x)} \psi_i(x) \, dx+ \int_a^b u'_h(x) \psi_i(x) \, dx = 0 \\
+    & \int_a^b \frac{\sum_{k=1}^{N+1} J_k \psi_k(x)}{\mu(x)} \psi_i(x) \, dx + \int_a^b \left(\sum_{k=1}^{N} u_k \phi_k(x)\right)' \psi_i(x) \, dx = 0
+\end{align*}
+Analyzing the first term of the LHS of the equation
+\begin{equation*}
+    \int_a^b \frac{\sum_{k=1}^{N+1} J_k \psi_k(x)}{\mu(x)} \psi_i(x) \, dx
+\end{equation*}
+I can derive the corresponding terms of the matrix $A_{11}$ of \eqref{eq:mixed_system}:
+\begin{equation}
+    A_{11,ik} = \int_a^b \frac{\psi_k(x) \psi_i(x)}{\mu(x)} \, dx
+\end{equation}
+Because the basis function $\psi_k(x)$ is $1$ exclusively on $[x_{k-1}, x_k]$ and $0$ elsewhere:
+\begin{equation}
+    A_{11,ik} = 
+    \begin{cases}
+        \int_{x_{i-1}}^{x_i} \frac{1 \cdot 1 }{\mu(x)} = \int_{x_{i-1}}^{x_i} \frac{1}{\mu(x)} &\text{  for } k=i \\
+        0 &\text{  otherwise} 
+    \end{cases}
+\end{equation}
+Now I can apply the harmonic average as defined by the assignment and the integral average as \eqref{AvgFunction} for $A_{11,ii}$
+\begin{align*}
+   A_{11,ii} = \int_{x_{i-1}}^{x_i} \frac{1}{\mu(x)} \, dx = h \cdot \overline{\left(\frac{1}{\mu}\right)}\big|_i = h \cdot \overline{\mu^{-1}}\big|_i = \frac{h}{\bar{\bar{\mu}}\big|_i}\\
+\end{align*}
+
+This leads to the assembly of the global matrix $A_{11} \in \mathbb{R}^{(N+1) \times (N+1)}$. Remarkably, it is a purely diagonal matrix:
+\begin{equation} \label{eq:matrix_A11}
+    A_{11} = h
+    \begin{bmatrix}
+        \frac{1}{\overline{\vphantom{\rule{0pt}{1.2ex}}\smash{\overline{\mu}}}|_1} & 0 & \dots & 0 \\
+        0 & \frac{1}{\overline{\vphantom{\rule{0pt}{1.2ex}}\smash{\overline{\mu}}}|_2} & \dots & 0 \\
+        \vdots & \vdots & \ddots & \vdots \\
+        0 & 0 & \dots & \frac{1}{\overline{\vphantom{\rule{0pt}{1.2ex}}\smash{\overline{\mu}}}|_{N+1}}
+    \end{bmatrix}
+\end{equation}
+
+Moving toward the second term of the LHS:
+\begin{equation}
+    \int_a^b \left(\sum_{k=1}^{N} u_k \phi_k(x)\right)' \psi_i(x) \, dx
+\end{equation}
+I can derive the corresponding $A_{10}$ matrix of \eqref{eq:mixed_system}:
+\begin{equation}
+    A_{10,ik} = \int_a^b \phi'_k(x) \psi_i(x) \, dx
+\end{equation}
+Since the test function $\phi_k(x)$ has a non-zero derivative only on the interval $[x_{k-1}, x_{k+1}]$, and the basis function $\psi_i(x)$ is $1$ exclusively on $[x_{i-1}, x_i]$ and $0$ elsewhere:
+\begin{align*}
+    &A_{10,ik} = \int_{x_{i-1}}^ {x_{i}} \phi'_k(x) \psi_i(x) \, dx  \\
+    &A_{10,ik} = 
+    \begin{cases}
+           \int_{x_{i-1}}^ {x_{i}} \phi'_{i-1}(x) \psi_i(x) \, dx = h \cdot \left( - \frac{1}{h}\right)  \cdot 1 = - 1 &\text{  for } k = i-1 \\
+           \int_{x_{i-1}}^ {x_{i}} \phi'_{i}(x) \psi_i(x) \, dx = h \cdot \frac{1}{h}  \cdot 1 =1 &\text{  for } k = i \\
+           0 &\text{  Otherwise } 
+    \end{cases}
+\end{align*}
+
+This leads to the assembly of the global matrix block $A_{10} \in \mathbb{R}^{(N+1) \times N}$:
+\begin{equation} \label{eq:matrix_A10}
+    A_{10} = 
+    \begin{bmatrix}
+         1 &  0 &  0 & \dots &  0 \\
+        -1 &  1 &  0 & \dots &  0 \\
+         0 & -1 &  1 & \dots &  0 \\
+    \vdots & \vdots & \ddots & \ddots & \vdots \\
+         0 &  0 & \dots & -1 &  1 \\
+         0 &  0 & \dots &  0 & -1
+    \end{bmatrix}
+\end{equation}
+
+The $f_1$ of \eqref{eq:mixed_system} is a vector of zeros because the RHS of \eqref{eq:Constitutive} is nil.
+
+So overall:
+\begin{equation*}
+    \begin{bmatrix}
+        A_{00} & A_{01} \\
+        A_{10} & A_{11}
+    \end{bmatrix}
+    \begin{bmatrix}
+        u \\
+        J
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+        f_0 \\
+        f_1
+    \end{bmatrix}
+\end{equation*}
+
+The global matrices and vectors, assembled analytically in the previous sections, are defined as follows:
+
+\begin{itemize}
+    \item \textbf{Matrix $A_{00} \in \mathbb{R}^{N \times N}$}: 
+    \begin{equation}
+        A_{00} = \frac{\sigma h}{6} \text{tridiag}(1, 4, 1)
+    \end{equation}
     
+    \item \textbf{Matrix $A_{01} \in \mathbb{R}^{N \times (N+1)}$}: The discrete divergence operator coupling flux to density.
+    \begin{equation}
+        A_{01} = 
+        \begin{bmatrix}
+            -1 &  1 &  0 & \dots &  0 &  0 \\
+             0 & -1 &  1 & \dots &  0 &  0 \\
+        \vdots & \vdots & \ddots & \ddots & \vdots & \vdots \\
+             0 &  0 & \dots & -1 &  1 &  0 \\
+             0 &  0 & \dots &  0 & -1 &  1
+        \end{bmatrix}
+    \end{equation}
+
+    \item \textbf{Matrix $A_{10} \in \mathbb{R}^{(N+1) \times N}$}:
+    \begin{equation}
+        A_{10} = 
+        \begin{bmatrix}
+             1 &  0 &  0 & \dots &  0 \\
+            -1 &  1 &  0 & \dots &  0 \\
+             0 & -1 &  1 & \dots &  0 \\
+        \vdots & \vdots & \ddots & \ddots & \vdots \\
+             0 &  0 & \dots & -1 &  1 \\
+             0 &  0 & \dots &  0 & -1
+        \end{bmatrix}
+    \end{equation}
+
+    \item \textbf{Matrix $A_{11} \in \mathbb{R}^{(N+1) \times (N+1)}$}:
+    \begin{equation}
+        A_{11} = h \cdot \text{diag}\left( \frac{1}{\overline{\vphantom{\rule{0pt}{1.2ex}}\smash{\overline{\mu}}}|_1}, \frac{1}{\overline{\vphantom{\rule{0pt}{1.2ex}}\smash{\overline{\mu}}}|_2}, \dots, \frac{1}{\overline{\vphantom{\rule{0pt}{1.2ex}}\smash{\overline{\mu}}}|_{N+1}} \right)
+    \end{equation}
+
+    \item \textbf{Load Vectors $f_0 \in \mathbb{R}^N$ and $f_1 \in \mathbb{R}^{N+1}$}: 
+    \begin{equation}
+        f_{0,i} = \frac{h}{2} \left[ f\left( \frac{x_{i-1} + x_i }{2} \right) + f\left( \frac{x_{i} + x_{i+1} }{2} \right) \right] , \quad \quad f_1 = \mathbf{0}
+    \end{equation}
+\end{itemize}
+
+\section{Point c) developement}
 
 \end{document}
 
