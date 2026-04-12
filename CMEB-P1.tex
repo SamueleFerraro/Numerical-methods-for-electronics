@@ -14,6 +14,7 @@
 \usepackage[a4paper,margin=2.5 cm]{geometry}
 \usepackage{hyperref} 
 \usepackage{enumitem}
+\newtheorem{theorem}{Theorem}
 
 \title{CMEB Project 1}
 
@@ -101,10 +102,25 @@
     \end{center}
     where \texttt{(a,b)} is the domain, \texttt{N+1} is the number of mesh elements, \texttt{f} and \texttt{mu} are the variable right hand side and diffusion coefficient and \texttt{sigma} is the constant reaction coefficient, \texttt{x} are the mesh nodes, \texttt{u} is the FEM density and \texttt{J} the FEM flux density.
 
-    \item \textbf{Comparison between primal and primal mixed formulations.} Let $a=0$, $b=1$, $\sigma=5$, $\mu(x)=1.5+\sin(30\pi x)$ and $u(x)=x^{5/2}(1-x)$[cite: 83]. The right hand side $f(x)$ can be computed as $f(x)=-\mu^{\prime}(x)u^{\prime}(x)-\mu(x)u^{\prime\prime}(x)+\sigma u(x)$[cite: 84]. Solve numerically the diffusion-reaction problem in mixed formulation (5) with $N+1=30$ mesh elements and compare the FEM density and flux density with those obtained by solving numerically (4)[cite: 85]. Comment on the $H^{1}(a,b)$ error on the true density $u(x)$ and on the $L^{2}(a,b)$ error on the true flux density $J(x)$[cite: 86].
+    \item \textbf{Comparison between primal and primal mixed formulations.} Let $a=0$, $b=1$, $\sigma=5$, $\mu(x)=1.5+\sin(30\pi x)$ and $u(x)=x^{5/2}(1-x)$[cite: 83]. The right hand side $f(x)$ can be computed as $f(x)=-\mu^{\prime}(x)u^{\prime}(x)-\mu(x)u^{\prime\prime}(x)+\sigma u(x)$.
+    \newline Solve numerically the diffusion-reaction problem in mixed formulation \eqref{eq:mixed_strong} with $N+1=30$ mesh elements and compare the FEM density and flux density with those obtained by solving numerically \eqref{eq:primalFormulation} Comment on the $H^{1}(a,b)$ error on the true density $u(x)$ and on the $L^{2}(a,b)$ error on the true flux density $J(x)$.
 
-    \item \textbf{Convergence analysis.} Verify numerically the above theorem by computing the left hand side of the inequality (6) for $3^{6}$ and the same problem of point d[cite: 96]. Plot the error decay and estimate the convergence order analitically[cite: 97]. Comment the results in light of the theory[cite: 97].
-\end{enumerate}
+    \item \textbf{Convergence analysis.} The following theorem for the convergence of the FEM in mixed formulation holds.
+
+        \begin{theorem}
+        Assume that the solution pair of the diffusion-reaction problem \eqref{eq:mixed_strong} 
+        is such that $u \in H^2(a,b) \cap H^1_0(a,b)$ and $J \in H^1(a,b)$, and let $h$ be 
+        sufficiently small. Then, there exists a constant $C > 0$ independent of $h$ such that
+        \begin{equation} \label{eq:convergence_theorem}
+            \|u - u_h\|_V + \|J - J_h\|_Q \leq C h \left( \|u\|_{H^2(a,b)} + \|J\|_{H^1(a,b)} \right).
+        \end{equation}
+        \end{theorem}
+        
+        Verify numerically the above theorem by computing the left hand side of the inequality 
+        \eqref{eq:convergence_theorem} for $N = 3^5, 3^6, 3^7, 3^8, 3^9, 3^{10}$ and the same 
+        problem of point d). Plot the error decay and estimate the convergence order analytically. 
+        Comment the results in light of the theory.
+        \end{enumerate}
 
 \newpage
 
@@ -115,6 +131,7 @@ Let us define the primal formulation of the problem:
         &-(\mu(x)u'(x))' + \sigma u(x) = f(x)\\
         &u(a) = u(b) = 0
     \end{cases}
+    \label{eq:primalFormulation}
 \end{equation}
 
 The flux $J(x)$ can be defined by using the constitutive law:
@@ -185,7 +202,8 @@ Overall \eqref{WeakFormA}:
 \end{align}
 which is the expression of the degrees of freedom of $J_h$. I may go further by using \eqref{AvgFunction}:
 \begin{equation}
-    J_i  = - \left(\frac{u_i - u_{i-1}}{h}  \right)  \overline{\mu}|_i \, dx
+    J_i  = - \left(\frac{u_i - u_{i-1}}{h}  \right)  \overline{\mu}|_i
+    \label{eq:primflux}
 \end{equation}
 
 \section{Point b) development}
@@ -321,6 +339,8 @@ I may use the \textit{Numerical Quadrature Formula} to compute the integrals:
      & = f\left( \frac{x_{i-1} + x_i }{2} \right) \frac{h}{2}  +  f\left( \frac{x_{i} + x_{i+1} }{2} \right) \frac{h}{2} = \frac{h}{2} \left[f\left( \frac{x_{i-1} + x_i }{2} \right) + f\left( \frac{x_{i} + x_{i+1} }{2} \right) \right]
 \end{align*}
 
+
+
 Let us move on the constitutive equation of \eqref{eq:mixed_strong} 
 \begin{equation}
     \frac{J(x)}{\mu(x)} + u'(x) = 0
@@ -331,6 +351,7 @@ and apply the same F.E.M. at its weak formulation \eqref{eq:WFConstitutiveLaw} f
     &\int_a^b \frac{J_h(x)}{\mu(x)} \psi_i(x) \, dx+ \int_a^b u'_h(x) \psi_i(x) \, dx = 0 \\
     & \int_a^b \frac{\sum_{k=1}^{N+1} J_k \psi_k(x)}{\mu(x)} \psi_i(x) \, dx + \int_a^b \left(\sum_{k=1}^{N} u_k \phi_k(x)\right)' \psi_i(x) \, dx = 0
 \end{align*}
+
 Analyzing the first term of the LHS of the equation
 \begin{equation*}
     \int_a^b \frac{\sum_{k=1}^{N+1} J_k \psi_k(x)}{\mu(x)} \psi_i(x) \, dx
@@ -348,9 +369,10 @@ Because the basis function $\psi_k(x)$ is $1$ exclusively on $[x_{k-1}, x_k]$ an
     \end{cases}
 \end{equation}
 Now I can apply the harmonic average as defined by the assignment and the integral average as \eqref{AvgFunction} for $A_{11,ii}$
-\begin{align*}
+\begin{align}
    A_{11,ii} = \int_{x_{i-1}}^{x_i} \frac{1}{\mu(x)} \, dx = h \cdot \overline{\left(\frac{1}{\mu}\right)}\big|_i = h \cdot \overline{\mu^{-1}}\big|_i = \frac{h}{\bar{\bar{\mu}}\big|_i}\\
-\end{align*}
+   \label{eq:A_11coefficient}
+\end{align}
 
 This leads to the assembly of the global matrix $A_{11} \in \mathbb{R}^{(N+1) \times (N+1)}$. Remarkably, it is a purely diagonal matrix:
 \begin{equation} \label{eq:matrix_A11}
@@ -362,6 +384,12 @@ This leads to the assembly of the global matrix $A_{11} \in \mathbb{R}^{(N+1) \t
         0 & 0 & \dots & \frac{1}{\overline{\vphantom{\rule{0pt}{1.2ex}}\smash{\overline{\mu}}}|_{N+1}}
     \end{bmatrix}
 \end{equation}
+In order to solve the integral \eqref{eq:A_11coefficient} , I may use the \textit{Numerical Quadrature Formula}:
+\begin{align}
+    A_{11,ii} = \int_{x_{i-1}}^{x_i} \frac{1}{\mu(x)} \, dx \, \widetilde{=} h \cdot \frac{1}{\mu(\frac{x_{i-1} + x_{i}}{2} )} = h \cdot \frac{1}{\mu(x_{m,i})}  
+    \label{eq:HarmMeanQuad}
+\end{align}
+Considering that \eqref{eq:HarmMeanQuad} lead to the same outcome of \eqref{eq:primflux} (by computing the integral with \textit{Numerical Quadrature Formula}), I will implement the computation of the integral on point C) using the MATLAB function \textit{integral(...)}.
 
 Moving toward the second term of the LHS:
 \begin{equation}
@@ -458,7 +486,124 @@ The global matrices and vectors, assembled analytically in the previous sections
     \end{equation}
 \end{itemize}
 
-\section{Point c) developement}
+\newpage
+
+\section{Point c) development}
+The code implementing the function \texttt{function [x, u, J] = gfem\_mixed\_dir\_hom(a, b, N, f, mu, sigma)} has been reported in \S \ref{code:mix_gfem}.
+
+The harmonic mean of the diffusion coefficient has been computed without the use of the \textit{Numerical Quadrature Formula}, as already said in \eqref{eq:HarmMeanQuad}, while the $f_0$ vector calculation is done via \textit{Numerical Quadrature Formula} in order to save computational resources.
+
+The plots of $u$ and $J$ are represented in the Figure \ref{fig:u_point_d} and Figure \ref{fig:J_point_d}:
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\linewidth]{images/u_bothIntegrals.png}
+    \caption{$u$ plot with primal and mixed formulation}
+    \label{fig:u_point_d}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\linewidth]{images/J_bothInt.png}
+    \caption{$J$ plot with primal and mixed formulation}
+    \label{fig:J_point_d}
+\end{figure}
+
+While the errors can be seen in Table \ref{tab:errors_d}:
+\begin{table}[h]
+    \centering
+    \begin{tabular}{lcc}
+        \hline
+        \textbf{Error} & \textbf{Mixed} & \textbf{Primal} \\
+        \hline
+        $\|u - u_h\|_{H^1(a,b)}$       & $2.2256 \times 10^{-1}$ & $1.7957 \times 10^{-1}$ \\
+        $|u - u_h|_{H^1(a,b)}$         & $2.2133 \times 10^{-1}$ & $1.7884 \times 10^{-1}$ \\
+        $\|J - J_h\|_{L^2(a,b)}$       & $7.7518 \times 10^{-2}$ & $6.9170 \times 10^{-2}$ \\
+        \hline
+    \end{tabular}
+    \caption{Comparison of errors between mixed and primal formulations 
+             with $N+1 = 30$ mesh elements, $\mu(x) = 1.5 + \sin(30\pi x)$ 
+             and $\sigma = 5$.}
+    \label{tab:errors_d}
+
+    
+\end{table}
+
+\newpage
+
+\section{Point e) development}
+The following Figure \ref{fig:ConvergenceMixed} shows the convergence rate of the problem \eqref{eq:mixed_strong}:
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\linewidth]{images/ConvergenceMixed.png}
+    \caption{Convergence rate of the mixed formulation}
+    \label{fig:ConvergenceMixed}
+\end{figure}
+\newpage
+
+
+\section{Appendix: codes}
+\subsection{gfem\_mixed\_dir\_hom.m}
+\label{code:mix_gfem}
+\begin{lstlisting}[style=matlab-editor]
+    function [x, u, J] = gfem_mixed_dir_hom(a, b, N, f, mu, sigma)
+% GFEM_MIXED_DIR_HOM Solves the diffusion-reaction problem in mixed formulation
+% with homogeneous Dirichlet boundary conditions.
+%
+% [x, u, J] = gfem_mixed_dir_hom(a, b, N, f, mu, sigma)
+%
+
+%space discretization
+h =(b-a)/(N+1);
+x = linspace(a, b, N+2)'; % Generate the spatial grid points
+%defining mid-point 
+xm = 0.5 *(x(1:end-1) + x(2:end));
+
+u = zeros(N+2, 1); 
+J = zeros(N+1, 1); 
+
+%Build the matrix blocks A_{00} 
+e_00 = ones(N,1);
+
+A_00 = sigma*h/6 * spdiags([e_00, 4*e_00, e_00], [-1, 0, 1], N,N);
+
+%Build the matrix blocks A_{01}
+A_01 = spdiags([-e_00, e_00], [0,1], N, N+1);
+
+%build the matrix block A_{10}
+A_10 = spdiags([-e_00, e_00], [-1, 0], N+1, N);
+
+
+%Build the matrix block A_{11}
+%mu_mean = mu(xm);
+%mu_harm_mean = 1./mu_mean; 
+
+%computation of the harmonic mean of the indexes 
+mu_harm_mean = arrayfun(@(i) (1/h) * integral(@(t) 1./mu(t), x(i), x(i+1)), 1:N+1)';
+
+A_11 = h*spdiags(mu_harm_mean, 0, N+1, N+1);
+
+A_global = [A_00, A_01;
+            A_10, A_11];
+
+%we build the f_0 vector:
+f0 = h/2 * f(xm(1:end-1)) + h/2 * f(xm(2:end));
+%Building f1
+f1 = zeros (N+1,1);
+%F global
+F_global = [f0;
+            f1];
+%Solving the system
+sol = A_global\F_global;
+
+%the first N elements is u (u(0) and u(N+1) are fixed by boundary condition
+u(2:end-1) = sol(1:N);
+
+%The last N+1 element are the flux J
+J = sol(N+1:end);
+
+return
+\end{lstlisting}
 
 \end{document}
 
