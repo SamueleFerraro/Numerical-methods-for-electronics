@@ -1,0 +1,65 @@
+function [x, u, J] = gfem_mixed_dir_hom(a, b, N, f, mu, sigma)
+% GFEM_MIXED_DIR_HOM Solves the diffusion-reaction problem in mixed formulation
+% with homogeneous Dirichlet boundary conditions.
+%
+% [x, u, J] = gfem_mixed_dir_hom(a, b, N, f, mu, sigma)
+%
+
+%%space discretization
+h =(b-a)/(N+1);
+
+x = linspace(a, b, N+2)'; % Generate the spatial grid points
+
+%defining mid-point 
+xm = 0.5 *(x(1:end-1) + x(2:end));
+
+u = zeros(N+2, 1); 
+
+J = zeros(N+1, 1); 
+
+%definition of the basic diagonal of ones
+e = ones(N,1);
+
+%Build the matrix blocks A_{00} 
+A_00 = sigma*h/6 * spdiags([e, 4*e, e], [-1, 0, 1], N,N);
+
+%Build the matrix blocks A_{01}
+A_01 = spdiags([-e, e], [0,1], N, N+1);
+
+%build the matrix block A_{10}
+A_10 = spdiags([-e, e], [-1, 0], N+1, N);
+
+
+%Build the matrix block A_{11}
+
+%computation of the harmonic mean of the diffusion coefficient
+
+mu_harm_mean = 0.5 * (1 ./ mu(x(1:end-1)) + 1 ./ mu(x(2:end)));
+
+A_11 = h*spdiags(mu_harm_mean, 0, N+1, N+1);
+
+%Assemble of the global matrix
+A_global = [A_00, A_01;
+            A_10, A_11];
+
+
+%Build f_0 vector
+f0 = h/2 * (f(xm(1:end-1)) +  f(xm(2:end)));
+
+%Build f1 vector
+f1 = zeros (N+1,1);
+
+%F global
+F_global = [f0;
+            f1];
+
+%Solving the system
+sol = A_global\F_global;
+
+%the first N elements is u (u(0) and u(N+1) are fixed by boundary condition)
+u(2:end-1) = sol(1:N);
+
+%The last N+1 element are the flux J
+J = sol(N+1:end);
+
+return
