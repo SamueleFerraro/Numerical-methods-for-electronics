@@ -21,9 +21,10 @@ xm = 0.5*(x(1:end-1)+x(2:end));
 % assembly
 e = ones(N,1);
 
-%computation of mu mean via trapezoidal quadrature formula
+% computation of mu mean via trapezoidal quadrature formula
 mu_mean = 0.5*(mu(x(1:end-1)) + mu(x(2:end)));
-
+% % Explicit integral 
+%mu_mean = arrayfun(@(i) (1/h) * integral(@(t) mu(t), x(i), x(i+1)), 1:N+1)';
 %Main diagonal of the stiffness matrix: calculated at lecture 2 notes
 mu_diag = mu_mean(1:end-1) + mu_mean(2:end);
 

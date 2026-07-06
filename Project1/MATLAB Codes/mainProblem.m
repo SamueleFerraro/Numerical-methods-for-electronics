@@ -8,7 +8,7 @@ addpath("./supportfunctions");
 a = 0;
 b = 1;
 sigma = 5;
-N =29;
+N = 29;
 
 beta=0;
 
